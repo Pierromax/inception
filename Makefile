@@ -1,24 +1,25 @@
 WP_DATA = /home/data/wordpress
 DB_DATA = /home/data/mariadb
+DCKF_COMPOSE = ./srcs/docker-compose.yml
 
 all: up
 
 up: build
 	@mkdir -p $(WP_DATA)
 	@mkdir -p $(DB_DATA)
-	docker-compose -f ./docker-compose.yml up -d
+	docker compose -f $(DCKF_COMPOSE) up -d
 
 down:
-	docker-compose -f ./doker-compose.yml down
+	docker compose -f $(DCKF_COMPOSE) down
 
 stop:
-	docker-compose -f ./doker-compose.yml stop
+	docker compose -f $(DCKF_COMPOSE) stop
 
 start:
-	docker-compose -f ./docker-compose.yml start
+	docker compose -f $(DCKF_COMPOSE) start
 
 build:
-	docker-compose -f ./docker-compose.yml build
+	docker compose -f $(DCKF_COMPOSE) build
 
 clean:
 	@docker stop $$(docker ps -qa) || true
