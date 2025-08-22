@@ -1,4 +1,3 @@
-version: "3.9"
 
 services:
   mariadb:
@@ -8,10 +7,10 @@ services:
     volumes:
       - mariadb:/var/lib/mysql
     env_file :
-      - inception
+      - .env
     restart: always
     healthcheck:
-      test: ["CMD" , "NC" , "-ZV ", "mariadb", "3306"]
+      test: ["CMD" , "nc" , "-zv ", "mariadb", "3306"]
       interval: 1s
       timeout: 5s
       retries: 10

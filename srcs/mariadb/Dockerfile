@@ -1,8 +1,8 @@
-FROM debian:trixie
+FROM debian:bookworm
 
 RUN apt-get update && apt-get upgrade -y
 
-RUN apt-get install -y mariadb-server netcat
+RUN apt-get install -y mariadb-server netcat-openbsd
 
 COPY ./tools/init_db.sh /init_db.sh
 

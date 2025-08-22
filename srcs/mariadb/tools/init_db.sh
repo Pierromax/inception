@@ -9,6 +9,6 @@ mariadb -e "GRANT ALL PRIVILEGES ON ${MYSQL_DB}.* TO \` ${MYSQL_USER}\`@'%';"
 
 mariadb -e "FLUSH PRIVILEGES;"
 
-mysqladmin -u root -p$MYSQL_ROOT_PASSWORD shutdown
+mysqladmin -u root -p $MYSQL_ROOT_PASSWORD shutdown
 
 mysqldsafe --port=420 --bind-adress=0.0.0.0 --datadir='/var/lib/mysql'
