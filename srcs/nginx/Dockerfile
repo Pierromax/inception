@@ -13,7 +13,7 @@ RUN openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
 
 COPY ./tools/nginx.conf /etc/nginx/nginx.conf
 
-RUN mkdir -p /var/nginx/nginx.conf
+RUN mkdir -p /var/nginx/nginx
 
 RUN mkdir -p /var/www/wordpress
 
