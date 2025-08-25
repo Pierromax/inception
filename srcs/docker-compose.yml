@@ -41,7 +41,7 @@ services:
     networks:
       - inception
     restart: always
-  
+
 volumes:
   mariadb:
     name: mariadb

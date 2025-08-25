@@ -1,5 +1,5 @@
-WP_DATA = /home/data/wordpress
-DB_DATA = /home/data/mariadb
+WP_DATA = ./srcs/wordpress/data
+DB_DATA = ./srcs/mariadb/data
 DCKF_COMPOSE = ./srcs/docker-compose.yml
 
 all: up
@@ -22,13 +22,13 @@ build:
 	docker compose -f $(DCKF_COMPOSE) build
 
 clean:
-	@docker stop $$(docker ps -qa) || true
-	@docker rm $$(docker ps -qa) || true
-	@docker rmi -f $$(docker images -qa) || true
-	@docker volume rm $$(docker volume ls -q) || true
-	@docker network rm $$(docker network ls -q) || true
-	@rm -rf $(WP_DATA) || true
-	@rm -rf $(DB_DATA) || true
+	@docker stop $$(docker ps -qa)
+	@docker rm $$(docker ps -qa)
+	@docker rmi -f $$(docker images -qa) 
+	@docker volume rm $$(docker volume ls -q) 
+	@docker network rm $$(docker network ls -q) 
+	@rm -rf $(WP_DATA)
+	@rm -rf $(DB_DATA)
 
 re: clean up
 
