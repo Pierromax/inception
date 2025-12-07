@@ -1,24 +1,56 @@
-curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
 
-chmod +x wp-cli.phar
+set -e 
 
-mv wp-cli.phar /usr/local/bin/wp
+mkdir -p /run/php
 
-cd /var/www/wordpress
+echo "[wordpress] Waiting for MariaDB to be ready..."
+while ! mysqladmin ping -h"${MYSQL_HOST}" -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" --silent; do
+    sleep 2
+done
+echo "[wordpress] MariaDB is ready!"
 
-chmod -R 755 /var/www/wordpress/
+if [ ! -f /var/www/html/wp-config.php ]; then
+    echo "[wordpress] Setting up WordPress with WP-CLI..."
+    cd /var/www/html
+    wp core download --allow-root
+    wp config create \
+        --dbname="${MYSQL_DATABASE}" \
+        --dbuser="${MYSQL_USER}" \
+        --dbpass="${MYSQL_PASSWORD}" \
+        --dbhost="${MYSQL_HOST}:3306" \
+        --allow-root
+fi
 
-chown -R www-data:www-data /var/www/wordpress
+if ! wp core is-installed --path=/var/www/html --allow-root; then
+    echo "[wordpress] Installing WordPress..."
+    wp core install \
+        --url="${WP_URL}" \
+        --title="${WP_TITLE}" \
+        --admin_user="${WP_ADMIN_USER}" \
+        --admin_password="${WP_ADMIN_PASSWORD}" \
+        --admin_email="${WP_ADMIN_EMAIL}" \
+        --skip-email \
+        --allow-root
+    
+    echo "[wordpress] Creating additional user..."
+    wp user create "${WP_USER}" "${WP_USER_EMAIL}" \
+        --user_pass="${WP_USER_PASSWORD}" \
+        --role=editor \
+        --allow-root
+    
+    echo "[wordpress] WordPress installed successfully!"
+else
+    echo "[wordpress] WordPress already installed."
+fi
 
+chown -R www-data:www-data /var/www/html
+chmod -R 755 /var/www/html
 
-wp core download --allow-root
+echo "[wordpress] Configuring PHP-FPM to listen on port 9000..."
+sed -i "s|^listen = .*|listen = 9000|" /etc/php/8.2/fpm/pool.d/www.conf
 
-wp core config --dbhost=mariadb:3306 --dbname="$MYSQL_DB" --dbuser="$MYSQL_USER" --dbpass="$MYSQLPASSWORD" --allow-root
-
-wp core install --url="$DOMAIN_NAME" --title="$WP_TITLE" --admin_user="$WPADMIN_P" --admin_email="$WP_ADMIN_E" --allow-root
-
-wp user create "$WP_U_NAME" "$WP_U_EMAIL" --user_pass="$WP_U_PASS" --role= "$WP_U_ROLE" --allow-root
-
+echo "[wordpress] Starting PHP-FPM..."
+exec php-fpm8.2 -F
 
 
 sed -i '36 s@/run/php/php7.4-fpm.sock@9000@' /etc/php/7.4/fpm/pool.d/www.conf
