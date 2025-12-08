@@ -1,4 +1,4 @@
-
+#!/bin/bash
 set -e 
 
 mkdir -p /run/php
@@ -51,10 +51,3 @@ sed -i "s|^listen = .*|listen = 9000|" /etc/php/8.2/fpm/pool.d/www.conf
 
 echo "[wordpress] Starting PHP-FPM..."
 exec php-fpm8.2 -F
-
-
-sed -i '36 s@/run/php/php7.4-fpm.sock@9000@' /etc/php/7.4/fpm/pool.d/www.conf
-
-mkdir -p /run/php
-
-/usr/sbin/php-fpm7.4 -F

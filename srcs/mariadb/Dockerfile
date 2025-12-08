@@ -1,11 +1,20 @@
 FROM debian:bookworm
 
-RUN apt-get update && apt-get upgrade -y
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get install -y mariadb-server netcat-openbsd
+ENV MYSQL_DATA_DIR=/var/lib/mysql 
 
-COPY ./tools/init_db.sh /init_db.sh
+RUN apt-get update && apt upgrade -y && \
+    apt-get install -y mariadb-server mariadb-client && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN chmod +x /init_db.sh
+RUN mkdir -p ${MYSQL_DATA_DIR} /run/mysqld && \
+    chown -R mysql:mysql ${MYSQL_DATA_DIR} /run/mysqld
 
-ENTRYPOINT ["/init_db.sh"]
+COPY tools/init_db.sh /usr/local/bin/init_db.sh
+RUN chmod +x /usr/local/bin/init_db.sh
+
+VOLUME ["/var/lib/mysql"]
+EXPOSE 3306
+
+CMD ["init_db.sh"]

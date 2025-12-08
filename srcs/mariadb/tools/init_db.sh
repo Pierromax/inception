@@ -1,14 +1,44 @@
-service mariadb start
-sleep 5
+#!/bin/bash
+set -e
 
-mariadb -e "CREATE DATABASE IF NOT EXISTS \`${MYSQL_DB}\`;"
+DB_PATH="/var/lib/mysql"
+DB_INIT_FLAG="${DB_PATH}/.db_initialized"
 
-mariadb -e "CREATE USER IF NOT EXISTS \` ${MYSQL_USER}\`@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';"
+if [ -d "${DB_PATH}/mysql" ] && [ -f "${DB_INIT_FLAG}" ]; then
+    echo "[mariadb] Existing database detected, skipping initialization."
+else
+    echo "[mariadb] Starting temporary mysqld for initialization..."
+    mysqld_safe --skip-networking &
+    pid="$!"
 
-mariadb -e "GRANT ALL PRIVILEGES ON ${MYSQL_DB}.* TO \` ${MYSQL_USER}\`@'%';"
+    echo "[mariadb] Waiting for mysqld to start..."
+    until mysqladmin ping --silent; do
+        sleep 1
+    done
 
-mariadb -e "FLUSH PRIVILEGES;"
+    echo "[mariadb] Creating database and user..."
+    mysql -u root <<-EOSQL
+		CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
+		CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+		GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
+		FLUSH PRIVILEGES;
+EOSQL
 
-mysqladmin -u root -p $MYSQL_ROOT_PASSWORD shutdown
+    echo "[mariadb] Shutting down temporary mysqld..."
+    mysqladmin shutdown
 
-mysqldsafe --port=420 --bind-adress=0.0.0.0 --datadir='/var/lib/mysql'
+    touch "${DB_INIT_FLAG}"
+    echo "[mariadb] Initialization complete."
+	ls /var/lib/mysql
+fi
+
+CONF_FILE="/etc/mysql/mariadb.conf.d/50-server.cnf"
+if grep -q '^bind-address' "$CONF_FILE"; then
+    sed -i 's/^bind-address.*/bind-address = 0.0.0.0/' "$CONF_FILE"
+else
+    echo "bind-address = 0.0.0.0" >> "$CONF_FILE"
+fi
+
+echo "[mariadb] Starting MariaDB..."
+exec mysqld_safe
+exec mysqld_safe
