@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Avoid client env forcing TCP to the service name; use local socket instead
+unset MYSQL_HOST
+
 DB_PATH="/var/lib/mysql"
 DB_INIT_FLAG="${DB_PATH}/.db_initialized"
 
@@ -12,7 +15,7 @@ chown -R mysql:mysql /var/lib/mysql
 if [ ! -d "${DB_PATH}/mysql" ] || [ ! -f "${DB_INIT_FLAG}" ]; then
     echo "[mariadb] First initialization..."
 
-    mysqld --skip-networking --socket=/run/mysqld/mysqld.sock &
+    mysqld --user=mysql --skip-networking --socket=/run/mysqld/mysqld.sock &
     pid="$!"
 
     echo "[mariadb] Waiting for mysqld to start..."
@@ -42,4 +45,4 @@ bind-address = 0.0.0.0
 EOF
 
 echo "[mariadb] Starting MariaDB..."
-exec mysqld
+exec mysqld --user=mysql

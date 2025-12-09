@@ -16,6 +16,4 @@ RUN chmod +x /usr/local/bin/init_db.sh
 
 EXPOSE 3306
 
-USER mysql
-
 CMD ["/usr/local/bin/init_db.sh"]
