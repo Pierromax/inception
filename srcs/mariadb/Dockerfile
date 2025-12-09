@@ -2,19 +2,20 @@ FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV MYSQL_DATA_DIR=/var/lib/mysql 
-
-RUN apt-get update && apt upgrade -y && \
+RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y mariadb-server mariadb-client && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p ${MYSQL_DATA_DIR} /run/mysqld && \
-    chown -R mysql:mysql ${MYSQL_DATA_DIR} /run/mysqld
+RUN mkdir -p /run/mysqld && \
+    chown -R mysql:mysql /run/mysqld && \
+    chown -R mysql:mysql /var/lib/mysql
 
 COPY tools/init_db.sh /usr/local/bin/init_db.sh
 RUN chmod +x /usr/local/bin/init_db.sh
 
-VOLUME ["/var/lib/mysql"]
 EXPOSE 3306
 
-CMD ["init_db.sh"]
+USER mysql
+
+CMD ["/usr/local/bin/init_db.sh"]

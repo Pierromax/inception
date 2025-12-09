@@ -4,41 +4,42 @@ set -e
 DB_PATH="/var/lib/mysql"
 DB_INIT_FLAG="${DB_PATH}/.db_initialized"
 
-if [ -d "${DB_PATH}/mysql" ] && [ -f "${DB_INIT_FLAG}" ]; then
-    echo "[mariadb] Existing database detected, skipping initialization."
-else
-    echo "[mariadb] Starting temporary mysqld for initialization..."
-    mysqld_safe --skip-networking &
+# Permissions nécessaires
+mkdir -p /run/mysqld
+chown -R mysql:mysql /run/mysqld
+chown -R mysql:mysql /var/lib/mysql
+
+if [ ! -d "${DB_PATH}/mysql" ] || [ ! -f "${DB_INIT_FLAG}" ]; then
+    echo "[mariadb] First initialization..."
+
+    mysqld --skip-networking --socket=/run/mysqld/mysqld.sock &
     pid="$!"
 
     echo "[mariadb] Waiting for mysqld to start..."
-    until mysqladmin ping --silent; do
+    until mysqladmin --socket=/run/mysqld/mysqld.sock ping --silent; do
         sleep 1
     done
 
     echo "[mariadb] Creating database and user..."
-    mysql -u root <<-EOSQL
-		CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
-		CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
-		GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
-		FLUSH PRIVILEGES;
+    mysql --socket=/run/mysqld/mysqld.sock -u root <<-EOSQL
+        CREATE DATABASE IF NOT EXISTS \`${MYSQL_DATABASE}\`;
+        CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';
+        GRANT ALL PRIVILEGES ON \`${MYSQL_DATABASE}\`.* TO '${MYSQL_USER}'@'%';
+        FLUSH PRIVILEGES;
 EOSQL
 
-    echo "[mariadb] Shutting down temporary mysqld..."
-    mysqladmin shutdown
+    echo "[mariadb] Stopping temporary mysqld..."
+    mysqladmin --socket=/run/mysqld/mysqld.sock shutdown
 
     touch "${DB_INIT_FLAG}"
-    echo "[mariadb] Initialization complete."
-	ls /var/lib/mysql
+    echo "[mariadb] Initialization done."
 fi
 
-CONF_FILE="/etc/mysql/mariadb.conf.d/50-server.cnf"
-if grep -q '^bind-address' "$CONF_FILE"; then
-    sed -i 's/^bind-address.*/bind-address = 0.0.0.0/' "$CONF_FILE"
-else
-    echo "bind-address = 0.0.0.0" >> "$CONF_FILE"
-fi
+# Configure l'écoute externe
+cat > /etc/mysql/mariadb.conf.d/50-server.cnf <<EOF
+[mysqld]
+bind-address = 0.0.0.0
+EOF
 
 echo "[mariadb] Starting MariaDB..."
-exec mysqld_safe
-exec mysqld_safe
+exec mysqld

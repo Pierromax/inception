@@ -1,7 +1,10 @@
 #!/bin/bash
-set -e 
+set -e
+
+WP_PATH="/var/www/html"
 
 mkdir -p /run/php
+mkdir -p "$WP_PATH"
 
 echo "[wordpress] Waiting for MariaDB to be ready..."
 while ! mysqladmin ping -h"${MYSQL_HOST}" -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" --silent; do
@@ -9,10 +12,13 @@ while ! mysqladmin ping -h"${MYSQL_HOST}" -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}
 done
 echo "[wordpress] MariaDB is ready!"
 
-if [ ! -f /var/www/html/wp-config.php ]; then
-    echo "[wordpress] Setting up WordPress with WP-CLI..."
-    cd /var/www/html
+# Installation de WordPress
+if [ ! -f "${WP_PATH}/wp-config.php" ]; then
+    echo "[wordpress] Downloading WordPress..."
+    cd "$WP_PATH"
     wp core download --allow-root
+
+    echo "[wordpress] Creating wp-config.php..."
     wp config create \
         --dbname="${MYSQL_DATABASE}" \
         --dbuser="${MYSQL_USER}" \
@@ -21,7 +27,8 @@ if [ ! -f /var/www/html/wp-config.php ]; then
         --allow-root
 fi
 
-if ! wp core is-installed --path=/var/www/html --allow-root; then
+# Installation WP si non installée
+if ! wp core is-installed --path="$WP_PATH" --allow-root; then
     echo "[wordpress] Installing WordPress..."
     wp core install \
         --url="${WP_URL}" \
@@ -31,20 +38,19 @@ if ! wp core is-installed --path=/var/www/html --allow-root; then
         --admin_email="${WP_ADMIN_EMAIL}" \
         --skip-email \
         --allow-root
-    
+
     echo "[wordpress] Creating additional user..."
     wp user create "${WP_USER}" "${WP_USER_EMAIL}" \
         --user_pass="${WP_USER_PASSWORD}" \
         --role=editor \
         --allow-root
-    
-    echo "[wordpress] WordPress installed successfully!"
 else
     echo "[wordpress] WordPress already installed."
 fi
 
-chown -R www-data:www-data /var/www/html
-chmod -R 755 /var/www/html
+# Permissions
+chown -R www-data:www-data "$WP_PATH"
+chmod -R 755 "$WP_PATH"
 
 echo "[wordpress] Configuring PHP-FPM to listen on port 9000..."
 sed -i "s|^listen = .*|listen = 9000|" /etc/php/8.2/fpm/pool.d/www.conf
