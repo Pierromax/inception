@@ -1,13 +1,11 @@
 #!/bin/bash
 set -e
 
-# Avoid client env forcing TCP to the service name; use local socket instead
 unset MYSQL_HOST
 
 DB_PATH="/var/lib/mysql"
 DB_INIT_FLAG="${DB_PATH}/.db_initialized"
 
-# Permissions nécessaires
 mkdir -p /run/mysqld
 chown -R mysql:mysql /run/mysqld
 chown -R mysql:mysql /var/lib/mysql
@@ -38,7 +36,6 @@ EOSQL
     echo "[mariadb] Initialization done."
 fi
 
-# Configure l'écoute externe
 cat > /etc/mysql/mariadb.conf.d/50-server.cnf <<EOF
 [mysqld]
 bind-address = 0.0.0.0

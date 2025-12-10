@@ -1,10 +1,15 @@
 COMPOSE_FILE = srcs/docker-compose.yml
-	
+USER = ple-guya
+DOMAIN = $(USER).42.fr
+
 all: up
 
 up:
-	if [ ! -d /home/ple-guya/data/mariadb ]; then \
-		mkdir -p /home/ple-guya/data/mariadb /home/ple-guya/data/wordpress; \
+	@if [ ! -d /home/$(USER)/data/mariadb ]; then \
+		mkdir -p /home/$(USER)/data/mariadb /home/$(USER)/data/wordpress; \
+	fi
+	@if ! grep -q "$(DOMAIN)" /etc/hosts; then \
+		echo "127.0.0.1 $(DOMAIN)" | sudo tee -a /etc/hosts; \
 	fi
 	docker compose -f $(COMPOSE_FILE) up -d --build
 
